@@ -1,0 +1,98 @@
+---
+title: "RSfinal"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-05-22"
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(mosaic)
+library(car)
+setwd("/Users/stephaniesong")
+Layoffs <- read_tsv("Downloads/rs3/final/jt.data.6.LayoffsDischarges.tsv")
+Quits <- read_tsv("Downloads/rs3/final/jt.data.5.Quits.tsv")
+Hires <- read_tsv("Downloads/rs3/final/jt.data.3.Hires.tsv")
+JobOpenings <- read_tsv("Downloads/rs3/final/jt.data.2.JobOpenings.tsv")
+techLayoffs = Layoffs[Layoffs[[1]] == "JTS510000000000000LDL", ]
+techQuits = Quits[Quits[[1]] == "JTS510000000000000QUL", ]
+techHires = Hires[Hires[[1]] == "JTS510000000000000HIL", ]
+techOpenings = JobOpenings[JobOpenings[[1]] == "JTS510000000000000JOL", ]
+```
+Summary statistics for each variable
+```{r}
+techdf <- data.frame(Layoffs = techLayoffs$value, Quits = techQuits$value, Hires = techHires$value, Openings = techOpenings$value)
+statsList <- lapply(techdf, favstats)
+favstats_df <- bind_rows(statsList, .id = "Variable")
+favstats_df
+```
+Histograms for each variable
+```{r}
+hist(techLayoffs$value, breaks=50, xlab = "Layoffs", main = "Histogram of Tech Layoffs")
+hist(techQuits$value, breaks=50, xlab = "Quits", main = "Histogram of Tech Quits")
+hist(techHires$value, breaks=50, xlab = "Hires", main = "Histogram of Tech Hires")
+hist(techOpenings$value, breaks=50, xlab = "Openings", main = "Histogram of Tech Openings")
+```
+Scatter plots of each variable to show linear condition
+
+Highest corr is hires vs openings, sqrt(quits) vs openings, layoffs^2 vs openings
+```{r}
+plot(techLayoffs$value,techOpenings$value, xlab="Layoffs", ylab="Job openings",main="Tech Layoffs vs Job Openings")
+corLayoffs <- cor.test(techLayoffs$value,techOpenings$value)
+corLayoffsSqrt <- cor.test(sqrt(techLayoffs$value),techOpenings$value)
+corLayoffsLog <- cor.test(log(techLayoffs$value),techOpenings$value)
+corLayoffsSq <- cor.test((techLayoffs$value)^2,techOpenings$value)
+corLayoffs
+corLayoffsSqrt
+corLayoffsLog
+corLayoffsSq
+plot(techQuits$value,techOpenings$value, xlab="Quits", ylab="Job openings",main="Tech Quits vs Job Openings")
+corQuits <- cor.test(techQuits$value,techOpenings$value)
+corQuitsSqrt <- cor.test(sqrt(techQuits$value),techOpenings$value)
+corQuitsLog <- cor.test(log(techQuits$value),techOpenings$value)
+corQuitsSq <- cor.test((techQuits$value)^2,techOpenings$value)
+corQuits
+corQuitsSqrt
+corQuitsLog
+corQuitsSq
+plot(techHires$value,techOpenings$value, xlab="Hires", ylab="Job openings",main="Tech Hires vs Job Openings")
+corHires <- cor.test(techHires$value,techOpenings$value)
+corHiresSqrt <- cor.test(sqrt(techHires$value),techOpenings$value)
+corHiresLog <- cor.test(log(techHires$value),techOpenings$value)
+corHiresSq <- cor.test((techHires$value)^2,techOpenings$value)
+corHires
+corHiresSqrt
+corHiresLog
+corHiresSq
+```
+Regression model: tech openings = 10.3275 - 0.23*layoffs^2 - 0.72*sqrt(quits) +1.71*hires
+```{r}
+regmdl <- lm(techOpenings$value~techLayoffs$value^2+log(techQuits$value)+techHires$value)
+summary(regmdl)
+regmdlsqrt <- lm(log(techOpenings$value)~techLayoffs$value^2+log(techQuits$value)+techHires$value)
+regdf <- as.data.frame(summary(regmdlsqrt)$coefficients)
+regdf$VIF <- c(NA, vif(regmdlsqrt))
+regdf
+summary(regmdlsqrt)
+plot(regmdlsqrt)
+```
+Residual plots --> residuals are not normally distributed looking at the npp
+```{r}
+plot(regmdlsqrt)
+```
+Backward selection
+```{r}
+regmdl2 <- lm(log(techOpenings$value)~log(techQuits$value)+techHires$value)
+regdf <- as.data.frame(summary(regmdl2)$coefficients)
+regdf$VIF <- c(NA, vif(regmdl2))
+regdf
+summary(regmdl2)
+```
+
+
+
+
+
+
